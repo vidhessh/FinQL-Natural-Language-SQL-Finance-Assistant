@@ -1,0 +1,773 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>FinQL — Ask Your Ledger</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --paper:#F6F4EE;
+    --paper-dim:#EFEBDF;
+    --ink:#14213D;
+    --ink-soft:#2C3A5C;
+    --green:#1F6F54;
+    --green-soft:#E4EFE9;
+    --rust:#B3452F;
+    --rust-soft:#F5E7E2;
+    --gold:#B4890A;
+    --line:#D9D3C3;
+    --muted:#6B6558;
+    --white:#FFFDF8;
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0;
+    background:var(--paper);
+    color:var(--ink);
+    font-family:'Inter',sans-serif;
+    -webkit-font-smoothing:antialiased;
+  }
+  .wrap{max-width:920px;margin:0 auto;padding:48px 24px 80px;}
+
+  /* ---------- HERO ---------- */
+  .eyebrow{
+    font-family:'IBM Plex Mono',monospace;
+    font-size:12px;
+    letter-spacing:.14em;
+    text-transform:uppercase;
+    color:var(--muted);
+    margin:0 0 10px;
+  }
+  h1{
+    font-family:'Fraunces',serif;
+    font-size:clamp(34px,5vw,52px);
+    font-weight:600;
+    line-height:1.05;
+    margin:0 0 12px;
+    color:var(--ink);
+  }
+  h1 em{
+    font-style:italic;
+    color:var(--green);
+  }
+  .sub{
+    font-size:16px;
+    color:var(--ink-soft);
+    max-width:560px;
+    line-height:1.55;
+    margin:0 0 32px;
+  }
+
+  .stat-row{
+    display:grid;
+    grid-template-columns:repeat(4,1fr);
+    gap:1px;
+    background:var(--line);
+    border:1px solid var(--line);
+    border-radius:10px;
+    overflow:hidden;
+    margin-bottom:40px;
+  }
+  .stat{
+    background:var(--white);
+    padding:18px 16px;
+  }
+  .stat .label{
+    font-family:'IBM Plex Mono',monospace;
+    font-size:11px;
+    letter-spacing:.06em;
+    text-transform:uppercase;
+    color:var(--muted);
+    margin-bottom:6px;
+  }
+  .stat .value{
+    font-family:'Fraunces',serif;
+    font-size:22px;
+    font-weight:600;
+  }
+  .stat .value.pos{color:var(--green);}
+  .stat .value.neg{color:var(--rust);}
+
+  /* ---------- ASK BAR ---------- */
+  .ask-card{
+    background:var(--white);
+    border:1px solid var(--line);
+    border-radius:14px;
+    padding:20px;
+    box-shadow:0 1px 2px rgba(20,33,61,.04);
+    margin-bottom:28px;
+  }
+  .ask-row{display:flex;gap:10px;}
+  #question{
+    flex:1;
+    font-family:'Inter',sans-serif;
+    font-size:15px;
+    padding:13px 14px;
+    border:1px solid var(--line);
+    border-radius:9px;
+    background:var(--paper);
+    color:var(--ink);
+    outline:none;
+  }
+  #question:focus{border-color:var(--green);}
+  #askBtn{
+    font-family:'Inter',sans-serif;
+    font-weight:600;
+    font-size:14px;
+    padding:0 22px;
+    border:none;
+    border-radius:9px;
+    background:var(--ink);
+    color:var(--white);
+    cursor:pointer;
+    transition:background .15s ease;
+  }
+  #askBtn:hover{background:var(--ink-soft);}
+  #askBtn:disabled{background:var(--muted);cursor:default;}
+  .chips{display:flex;flex-wrap:wrap;gap:8px;margin-top:14px;}
+  .chip{
+    font-family:'IBM Plex Mono',monospace;
+    font-size:12px;
+    padding:7px 12px;
+    border:1px solid var(--line);
+    border-radius:999px;
+    background:var(--paper);
+    color:var(--ink-soft);
+    cursor:pointer;
+    transition:all .15s ease;
+  }
+  .chip:hover{border-color:var(--green);color:var(--green);}
+
+  /* ---------- STATUS ---------- */
+  #status{
+    font-family:'IBM Plex Mono',monospace;
+    font-size:13px;
+    color:var(--muted);
+    margin:6px 2px 0;
+    min-height:18px;
+  }
+
+  /* ---------- RECEIPT ---------- */
+  .receipt{
+    background:var(--white);
+    border:1px solid var(--line);
+    border-radius:2px;
+    margin-bottom:28px;
+    position:relative;
+    box-shadow:0 4px 14px rgba(20,33,61,.06);
+  }
+  .receipt::before, .receipt::after{
+    content:"";
+    position:absolute;
+    left:0; right:0; height:8px;
+    background:
+      radial-gradient(circle at 8px 0, transparent 6px, var(--paper) 6.5px) repeat-x;
+    background-size:16px 16px;
+  }
+  .receipt::before{top:-8px;transform:rotate(180deg);}
+  .receipt::after{bottom:-8px;}
+  .receipt-inner{padding:24px 26px 22px;}
+
+  .r-q{
+    font-family:'Fraunces',serif;
+    font-size:19px;
+    font-weight:600;
+    color:var(--ink);
+    margin:0 0 14px;
+  }
+  .r-divider{
+    border:none;
+    border-top:1px dashed var(--line);
+    margin:14px 0;
+  }
+  .r-label{
+    font-family:'IBM Plex Mono',monospace;
+    font-size:10.5px;
+    letter-spacing:.1em;
+    text-transform:uppercase;
+    color:var(--muted);
+    margin-bottom:6px;
+  }
+  .r-sql{
+    font-family:'IBM Plex Mono',monospace;
+    font-size:13px;
+    line-height:1.6;
+    color:var(--green);
+    background:var(--green-soft);
+    padding:12px 14px;
+    border-radius:6px;
+    white-space:pre-wrap;
+    word-break:break-word;
+  }
+  .r-error{
+    font-family:'IBM Plex Mono',monospace;
+    font-size:13px;
+    color:var(--rust);
+    background:var(--rust-soft);
+    padding:12px 14px;
+    border-radius:6px;
+  }
+  table.r-table{
+    width:100%;
+    border-collapse:collapse;
+    font-family:'IBM Plex Mono',monospace;
+    font-size:12.5px;
+    margin-top:4px;
+  }
+  table.r-table th{
+    text-align:left;
+    font-size:10.5px;
+    letter-spacing:.05em;
+    text-transform:uppercase;
+    color:var(--muted);
+    border-bottom:1px solid var(--line);
+    padding:6px 10px 6px 0;
+  }
+  table.r-table td{
+    padding:7px 10px 7px 0;
+    border-bottom:1px solid var(--paper-dim);
+    color:var(--ink-soft);
+  }
+  .r-insight{
+    font-family:'Inter',sans-serif;
+    font-size:14.5px;
+    line-height:1.55;
+    color:var(--ink);
+    background:var(--paper);
+    border-left:3px solid var(--gold);
+    padding:12px 14px;
+    border-radius:0 6px 6px 0;
+  }
+
+  /* ---------- HISTORY ---------- */
+  .hist-head{
+    display:flex;justify-content:space-between;align-items:center;
+    margin:36px 0 12px;
+  }
+  .hist-head h3{
+    font-family:'IBM Plex Mono',monospace;
+    font-size:12px;
+    letter-spacing:.1em;
+    text-transform:uppercase;
+    color:var(--muted);
+    margin:0;
+  }
+  #clearHist{
+    font-family:'IBM Plex Mono',monospace;
+    font-size:11px;
+    color:var(--muted);
+    background:none;border:none;cursor:pointer;text-decoration:underline;
+  }
+  .hist-item{
+    display:flex;justify-content:space-between;gap:12px;
+    padding:11px 4px;
+    border-bottom:1px solid var(--line);
+    font-size:13.5px;
+    cursor:pointer;
+  }
+  .hist-item:hover .hist-q{color:var(--green);}
+  .hist-q{color:var(--ink-soft);}
+  .hist-t{font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--muted);white-space:nowrap;}
+
+  footer{
+    margin-top:48px;
+    font-family:'IBM Plex Mono',monospace;
+    font-size:11.5px;
+    color:var(--muted);
+    text-align:center;
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <div class="eyebrow">// personal finance, queried in plain english</div>
+  <h1>Ask your ledger <em>anything.</em></h1>
+  <p class="sub">FinQL turns a plain-English question into a real SQL query, runs it against your transactions, and hands back a straight answer. No dashboards to dig through.</p>
+
+  <div class="stat-row" id="statRow"></div>
+
+  <div class="ask-card">
+    <div class="ask-row">
+      <input id="question" type="text" placeholder="e.g. How much did I spend on dining last month?" />
+      <button id="askBtn" onclick="handleAsk()">Ask</button>
+    </div>
+    <div class="chips" id="chips"></div>
+    <div id="status"></div>
+  </div>
+
+  <div id="results"></div>
+
+  <div class="hist-head">
+    <h3>Recent questions</h3>
+    <button id="clearHist" onclick="clearHistory()">Clear</button>
+  </div>
+  <div id="historyList"></div>
+
+  <footer>FinQL — natural language → SQL → answer · a plain-English interface for your ledger</footer>
+</div>
+
+<script>
+/* =========================================================
+   1. SEED DATA — deterministic pseudo-random transaction ledger
+   ========================================================= */
+function mulberry32(a){
+  return function(){
+    a |= 0; a = a + 0x6D2B79F5 | 0;
+    let t = Math.imul(a ^ a >>> 15, 1 | a);
+    t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t;
+    return ((t ^ t >>> 14) >>> 0) / 4294967296;
+  };
+}
+const rand = mulberry32(20260729);
+
+const MERCHANTS = {
+  Groceries: ["Whole Foods","Trader Joe's","Local Farmers Market","Costco"],
+  Dining: ["Chipotle","The Green Bowl","Sushi Ren","Blue Bottle Coffee","Pizzeria Napoli"],
+  Subscriptions: ["Netflix","Spotify","iCloud+","NYT Digital"],
+  Rent: ["Maple Court Apartments"],
+  Transport: ["Uber","Metro Transit","Shell Gas"],
+  Entertainment: ["AMC Theatres","Steam","Ticketmaster"],
+  Utilities: ["City Power & Light","Comcast Internet","Water Authority"],
+  Investments: ["Fidelity Brokerage","Robo Advisor Auto-Invest"],
+  Shopping: ["Amazon","Target","Uniqlo"],
+  Health: ["CVS Pharmacy","City Gym","Dr. Patel Clinic"],
+  Income: ["Acme Corp Payroll","Freelance Client Payment"]
+};
+const CATEGORY_RANGE = {
+  Groceries:[20,120], Dining:[8,60], Subscriptions:[6,20], Rent:[1450,1450],
+  Transport:[6,45], Entertainment:[10,70], Utilities:[35,140],
+  Investments:[100,600], Shopping:[15,180], Health:[10,150], Income:[1800,3200]
+};
+const CATEGORIES = Object.keys(MERCHANTS);
+
+function pad(n){return n<10?"0"+n:""+n;}
+function quarterOf(m){return "Q"+(Math.floor(m/3)+1);}
+const MONTH_NAMES=["January","February","March","April","May","June","July","August","September","October","November","December"];
+
+function buildTransactions(){
+  const rows=[];
+  let id=1;
+  const today = new Date(2026,6,29); // Jul 29 2026
+  for(let back=0; back<4; back++){
+    const d = new Date(today.getFullYear(), today.getMonth()-back, 1);
+    const year=d.getFullYear(), month=d.getMonth();
+    // fixed monthly items
+    rows.push(mkRow(id++, year, month, 1, "Rent", "Maple Court Apartments", 1450, "debit"));
+    rows.push(mkRow(id++, year, month, 1, "Income", "Acme Corp Payroll", 2650 + Math.round(rand()*80), "credit"));
+    if(rand()>0.55) rows.push(mkRow(id++, year, month, 3+Math.floor(rand()*5), "Income", "Freelance Client Payment", 300+Math.round(rand()*500), "credit"));
+    MERCHANTS.Subscriptions.forEach(m=>{
+      rows.push(mkRow(id++, year, month, 5, "Subscriptions", m, CATEGORY_RANGE.Subscriptions[0]+Math.round(rand()*(CATEGORY_RANGE.Subscriptions[1]-CATEGORY_RANGE.Subscriptions[0])), "debit"));
+    });
+    ["City Power & Light","Comcast Internet","Water Authority"].forEach(m=>{
+      rows.push(mkRow(id++, year, month, 8, "Utilities", m, CATEGORY_RANGE.Utilities[0]+Math.round(rand()*(CATEGORY_RANGE.Utilities[1]-CATEGORY_RANGE.Utilities[0])), "debit"));
+    });
+    rows.push(mkRow(id++, year, month, 10, "Investments", "Robo Advisor Auto-Invest", 200, "debit"));
+    if(rand()>0.4) rows.push(mkRow(id++, year, month, 18, "Investments", "Fidelity Brokerage", 100+Math.round(rand()*500), "debit"));
+
+    // variable, multiple-per-month categories
+    const variableCounts = {Groceries:7, Dining:9, Transport:8, Entertainment:3, Shopping:4, Health:2};
+    Object.entries(variableCounts).forEach(([cat,count])=>{
+      for(let i=0;i<count;i++){
+        const day = 1+Math.floor(rand()*27);
+        const merch = MERCHANTS[cat][Math.floor(rand()*MERCHANTS[cat].length)];
+        const [lo,hi] = CATEGORY_RANGE[cat];
+        const amt = Math.round((lo + rand()*(hi-lo))*100)/100;
+        rows.push(mkRow(id++, year, month, day, cat, merch, amt, "debit"));
+      }
+    });
+  }
+  rows.sort((a,b)=> a.date < b.date ? 1 : -1);
+  return rows;
+}
+function mkRow(id, year, month, day, category, merchant, amount, type){
+  const date = `${year}-${pad(month+1)}-${pad(day)}`;
+  return {
+    id, date, month: `${year}-${pad(month+1)}`, monthName: MONTH_NAMES[month],
+    quarter: quarterOf(month), year, category, merchant,
+    amount: Math.round(amount*100)/100, type
+  };
+}
+
+const TRANSACTIONS = buildTransactions();
+
+/* =========================================================
+   2. TINY SQL ENGINE — supports the subset FinQL's prompt targets
+   SELECT <cols|AGG(col) AS alias> FROM transactions
+   [WHERE c OP v (AND c OP v)*] [GROUP BY col] [ORDER BY col [ASC|DESC]] [LIMIT n]
+   ========================================================= */
+function runSQL(sql, table){
+  const m = sql.trim().replace(/;+\s*$/,'').match(
+    /^SELECT\s+(.+?)\s+FROM\s+(\w+)(?:\s+WHERE\s+(.+?))?(?:\s+GROUP\s+BY\s+(.+?))?(?:\s+ORDER\s+BY\s+(.+?))?(?:\s+LIMIT\s+(\d+))?$/is
+  );
+  if(!m) throw new Error("Could not parse SQL: " + sql);
+  const [, selectStr, , whereStr, groupByStr, orderByStr, limitStr] = m;
+
+  let rows = table.slice();
+  if(whereStr) rows = rows.filter(r => evalWhere(r, whereStr));
+
+  const selectItems = splitTop(selectStr).map(parseSelectItem);
+  const groupCol = groupByStr ? groupByStr.trim() : null;
+
+  let out;
+  const hasAgg = selectItems.some(s=>s.agg);
+
+  if(groupCol){
+    const groups = {};
+    rows.forEach(r=>{
+      const k = r[groupCol];
+      (groups[k] = groups[k]||[]).push(r);
+    });
+    out = Object.keys(groups).map(k=>{
+      const grp = groups[k];
+      const o = {};
+      selectItems.forEach(item=>{
+        if(item.col === groupCol && !item.agg){ o[groupCol] = k; }
+        else if(item.agg){ o[item.alias] = aggregate(item.agg, item.col, grp); }
+      });
+      if(!(groupCol in o)) o[groupCol] = k;
+      return o;
+    });
+  } else if(hasAgg){
+    const o = {};
+    selectItems.forEach(item=>{
+      if(item.agg) o[item.alias] = aggregate(item.agg, item.col, rows);
+    });
+    out = [o];
+  } else {
+    out = rows.map(r=>{
+      if(selectItems.length===1 && selectItems[0].col==='*') return r;
+      const o = {};
+      selectItems.forEach(item=>{ o[item.alias] = r[item.col]; });
+      return o;
+    });
+  }
+
+  if(orderByStr){
+    const parts = orderByStr.trim().split(/\s+/);
+    const col = parts[0], dir = (parts[1]||'ASC').toUpperCase();
+    out.sort((a,b)=>{
+      const av=a[col], bv=b[col];
+      if(av===bv) return 0;
+      const cmp = av>bv?1:-1;
+      return dir==='DESC' ? -cmp : cmp;
+    });
+  }
+  if(limitStr) out = out.slice(0, parseInt(limitStr,10));
+  return out;
+}
+function splitTop(s){ return s.split(',').map(x=>x.trim()); }
+function parseSelectItem(item){
+  const aggM = item.match(/^(SUM|AVG|COUNT|MIN|MAX)\s*\(\s*(\*|[\w.]+)\s*\)(?:\s+AS\s+(\w+))?$/i);
+  if(aggM){
+    const agg = aggM[1].toUpperCase(), col = aggM[2], alias = aggM[3] || `${agg.toLowerCase()}_${col.replace('*','all')}`;
+    return {agg, col, alias};
+  }
+  const colM = item.match(/^([\w.*]+)(?:\s+AS\s+(\w+))?$/i);
+  const col = colM[1], alias = colM[2] || col;
+  return {col, alias};
+}
+function aggregate(fn, col, rows){
+  if(fn==='COUNT') return rows.length;
+  const vals = rows.map(r=>Number(r[col])).filter(v=>!isNaN(v));
+  if(fn==='SUM') return round2(vals.reduce((a,b)=>a+b,0));
+  if(fn==='AVG') return vals.length? round2(vals.reduce((a,b)=>a+b,0)/vals.length) : 0;
+  if(fn==='MIN') return round2(Math.min(...vals));
+  if(fn==='MAX') return round2(Math.max(...vals));
+  return null;
+}
+function round2(n){ return Math.round(n*100)/100; }
+function evalWhere(row, whereStr){
+  // supports AND-chained (and simple OR-chained) conditions, no parens
+  const orParts = whereStr.split(/\s+OR\s+/i);
+  return orParts.some(orPart=>{
+    const andParts = orPart.split(/\s+AND\s+/i);
+    return andParts.every(cond=>evalCond(row, cond.trim()));
+  });
+}
+function evalCond(row, cond){
+  const m = cond.match(/^([\w.]+)\s*(=|!=|<>|>=|<=|>|<|LIKE)\s*(.+)$/i);
+  if(!m) return true;
+  let [, col, op, rawVal] = m;
+  op = op.toUpperCase();
+  let val = rawVal.trim();
+  if(/^'.*'$/.test(val) || /^".*"$/.test(val)) val = val.slice(1,-1);
+  const rowVal = row[col];
+  if(op==='LIKE'){
+    const pattern = '^'+val.replace(/[.*+?^${}()|[\]\\]/g,'\\$&').replace(/%/g,'.*').replace(/_/g,'.')+'$';
+    return new RegExp(pattern,'i').test(String(rowVal));
+  }
+  const numVal = parseFloat(val);
+  const bothNumeric = !isNaN(numVal) && typeof rowVal === 'number';
+  const a = bothNumeric ? rowVal : String(rowVal).toLowerCase();
+  const b = bothNumeric ? numVal : String(val).toLowerCase();
+  switch(op){
+    case '=': return a===b;
+    case '!=': case '<>': return a!==b;
+    case '>': return a>b;
+    case '<': return a<b;
+    case '>=': return a>=b;
+    case '<=': return a<=b;
+  }
+  return false;
+}
+
+/* =========================================================
+   3. GENAI LAYER — natural language -> SQL, then result -> insight
+   ========================================================= */
+const SCHEMA_PROMPT = `You translate a personal-finance question into ONE SQL query for a table called "transactions".
+
+Columns: id (int), date ("YYYY-MM-DD"), month ("YYYY-MM"), monthName (e.g. "June"), quarter (e.g. "Q2"), year (int), category (text: Groceries, Dining, Subscriptions, Rent, Transport, Entertainment, Utilities, Investments, Shopping, Health, Income), merchant (text), amount (positive number), type (text: "debit" = money out, "credit" = money in).
+
+Rules:
+- Only SELECT queries. No JOIN, no subqueries, no parentheses in WHERE.
+- Supported clauses only, in this order: SELECT ... FROM transactions [WHERE ... (AND/OR, no parens)] [GROUP BY col] [ORDER BY col [ASC|DESC]] [LIMIT n]
+- Supported aggregates: SUM(amount), COUNT(*), AVG(amount), MIN(amount), MAX(amount). Always alias aggregates with AS.
+- Spending / expenses => filter type = 'debit'. Income / earnings => filter type = 'credit'.
+- String values in WHERE must be single-quoted.
+- Prefer GROUP BY + SUM for "how much on X", "top N by category/merchant" type questions.
+- Respond with ONLY minified JSON, no markdown fences, no prose: {"sql":"...","note":"one short clause describing what the query returns"}
+
+Examples:
+Q: How much did I spend on dining in June?
+A: {"sql":"SELECT SUM(amount) AS total FROM transactions WHERE category = 'Dining' AND monthName = 'June' AND type = 'debit'","note":"total dining spend in June"}
+
+Q: Top 5 merchants by total spend
+A: {"sql":"SELECT merchant, SUM(amount) AS total FROM transactions WHERE type = 'debit' GROUP BY merchant ORDER BY total DESC LIMIT 5","note":"five merchants with the highest total spend"}
+
+Q: Monthly spend by category
+A: {"sql":"SELECT category, SUM(amount) AS total FROM transactions WHERE type = 'debit' GROUP BY category ORDER BY total DESC","note":"total spend per category"}
+
+Q: What was my biggest single purchase?
+A: {"sql":"SELECT merchant, category, amount, date FROM transactions WHERE type = 'debit' ORDER BY amount DESC LIMIT 1","note":"largest single expense"}
+`;
+
+const FINQL_ENGINE_KEY = "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";
+
+async function askEngine(system, userText){
+  let res;
+  try{
+    res = await fetch("https://api.groq.com/openai/v1/chat/completions", {
+      method:"POST",
+      headers:{
+        "Content-Type":"application/json",
+        "Authorization":"Bearer " + FINQL_ENGINE_KEY
+      },
+      body: JSON.stringify({
+        model:"llama-3.1-8b-instant",
+        temperature:0,
+        max_tokens:400,
+        messages:[
+          {role:"system", content:system},
+          {role:"user", content:userText}
+        ]
+      })
+    });
+  }catch(networkErr){
+    throw new Error("Couldn't reach the FinQL engine — check your internet connection.");
+  }
+  if(!res.ok){
+    let detail = '';
+    try{ const errJson = await res.json(); detail = errJson.error?.message || ''; }catch(e){}
+    if(res.status === 401) throw new Error("The FinQL engine rejected the request — the configured key may be invalid.");
+    throw new Error(`FinQL engine error (${res.status})${detail ? ': ' + detail : ''}`);
+  }
+  const data = await res.json();
+  return data.choices?.[0]?.message?.content || '';
+}
+
+function cleanJSON(text){
+  let t = text.replace(/```json|```/g,'').trim();
+  const match = t.match(/\{[\s\S]*\}/);
+  return match ? match[0] : t;
+}
+
+async function nlToSQL(question){
+  const raw = await askEngine(SCHEMA_PROMPT, question);
+  const parsed = JSON.parse(cleanJSON(raw));
+  if(!parsed.sql) throw new Error("Couldn't turn that into a query — try rephrasing your question.");
+  return parsed;
+}
+
+async function resultToInsight(question, sql, rows){
+  const sys = `You explain a finance-query result in ONE short, plain-English sentence (max 28 words). No markdown, no restating the SQL, just the answer a person would want to hear. If the result is empty, say so plainly and suggest the likely reason (e.g. no matching transactions).`;
+  const payload = `Question: ${question}\nSQL used: ${sql}\nResult rows (JSON, may be truncated): ${JSON.stringify(rows.slice(0,15))}`;
+  const raw = await askEngine(sys, payload);
+  return raw.trim();
+}
+
+/* =========================================================
+   4. STORAGE — query history, browser-local
+   (this file runs standalone once deployed, so we use
+   localStorage directly; every call is wrapped so the app
+   still works, without persistence, if storage is blocked)
+   ========================================================= */
+const HIST_KEY = 'finql_history';
+let memoryHistory = [];
+
+function loadHistory(){
+  try{
+    const raw = localStorage.getItem(HIST_KEY);
+    return raw ? JSON.parse(raw) : [];
+  }catch(e){ return memoryHistory; }
+}
+function saveHistory(list){
+  memoryHistory = list.slice(0,12);
+  try{ localStorage.setItem(HIST_KEY, JSON.stringify(memoryHistory)); }catch(e){}
+}
+function clearHistory(){
+  try{ localStorage.removeItem(HIST_KEY); }catch(e){}
+  memoryHistory = [];
+  renderHistory([]);
+}
+
+/* =========================================================
+   5. UI
+   ========================================================= */
+function fmtMoney(n){
+  const sign = n<0 ? "-" : "";
+  return sign + "$" + Math.abs(n).toLocaleString(undefined,{minimumFractionDigits:2, maximumFractionDigits:2});
+}
+
+function renderStats(){
+  const income = round2(TRANSACTIONS.filter(t=>t.type==='credit').reduce((a,t)=>a+t.amount,0));
+  const expense = round2(TRANSACTIONS.filter(t=>t.type==='debit').reduce((a,t)=>a+t.amount,0));
+  const net = round2(income-expense);
+  const topCatMap = {};
+  TRANSACTIONS.filter(t=>t.type==='debit').forEach(t=> topCatMap[t.category]=(topCatMap[t.category]||0)+t.amount);
+  const topCat = Object.entries(topCatMap).sort((a,b)=>b[1]-a[1])[0];
+
+  const stats = [
+    {label:"Total income (4 mo)", value: fmtMoney(income), cls:"pos"},
+    {label:"Total spend (4 mo)", value: fmtMoney(expense), cls:"neg"},
+    {label:"Net", value: (net>=0?"+":"") + fmtMoney(net), cls: net>=0?"pos":"neg"},
+    {label:"Top category", value: topCat[0], cls:""}
+  ];
+  document.getElementById('statRow').innerHTML = stats.map(s=>`
+    <div class="stat"><div class="label">${s.label}</div><div class="value ${s.cls}">${s.value}</div></div>
+  `).join('');
+}
+
+const EXAMPLES = [
+  "How much did I spend on dining in June?",
+  "Top 5 merchants by total spend",
+  "Monthly spend by category",
+  "What was my biggest single purchase?",
+  "How much income did I get in Q2?"
+];
+function renderChips(){
+  document.getElementById('chips').innerHTML = EXAMPLES.map(q=>
+    `<span class="chip" onclick="runQuestion(${JSON.stringify(q)})">${q}</span>`
+  ).join('');
+}
+
+function setStatus(msg){ document.getElementById('status').textContent = msg || ''; }
+
+function renderReceipt(question, sqlText, note, rows, insight, errorMsg){
+  const box = document.getElementById('results');
+  let inner = `<div class="r-q">${escapeHTML(question)}</div>`;
+  if(errorMsg){
+    inner += `<div class="r-label">Error</div><div class="r-error">${escapeHTML(errorMsg)}</div>`;
+  } else {
+    inner += `<div class="r-label">Generated SQL${note ? ' — '+escapeHTML(note) : ''}</div><div class="r-sql">${escapeHTML(sqlText)}</div>`;
+    inner += `<hr class="r-divider" />`;
+    inner += `<div class="r-label">Result</div>`;
+    inner += renderTable(rows);
+    if(insight){
+      inner += `<hr class="r-divider" />`;
+      inner += `<div class="r-label">Insight</div><div class="r-insight">${escapeHTML(insight)}</div>`;
+    }
+  }
+  // chat-style feed: newest answer is added to the top of the log,
+  // older ones stay visible below instead of being wiped out
+  const entry = document.createElement('div');
+  entry.className = 'receipt';
+  entry.innerHTML = `<div class="receipt-inner">${inner}</div>`;
+  box.prepend(entry);
+}
+
+function renderTable(rows){
+  if(!rows || rows.length===0) return `<div style="font-family:'IBM Plex Mono',monospace;font-size:12.5px;color:var(--muted);">No matching rows.</div>`;
+  const cols = Object.keys(rows[0]);
+  const head = cols.map(c=>`<th>${escapeHTML(c)}</th>`).join('');
+  const body = rows.slice(0,25).map(r=>{
+    return '<tr>' + cols.map(c=>{
+      let v = r[c];
+      if(typeof v === 'number' && /amount|total|sum|avg|min|max/i.test(c)) v = fmtMoney(v);
+      return `<td>${escapeHTML(String(v))}</td>`;
+    }).join('') + '</tr>';
+  }).join('');
+  return `<table class="r-table"><thead><tr>${head}</tr></thead><tbody>${body}</tbody></table>`;
+}
+function escapeHTML(s){
+  return String(s).replace(/[&<>"']/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
+
+async function renderHistory(list){
+  const el = document.getElementById('historyList');
+  if(!list || list.length===0){ el.innerHTML = `<div style="font-family:'IBM Plex Mono',monospace;font-size:12.5px;color:var(--muted);padding:6px 4px;">No questions yet — ask one above.</div>`; return; }
+  el.innerHTML = list.map((h,i)=>`
+    <div class="hist-item" onclick="runQuestion(${JSON.stringify(h.question)})">
+      <span class="hist-q">${escapeHTML(h.question)}</span>
+      <span class="hist-t">${new Date(h.ts).toLocaleDateString(undefined,{month:'short',day:'numeric'})}</span>
+    </div>
+  `).join('');
+}
+
+async function handleAsk(){
+  const input = document.getElementById('question');
+  const q = input.value.trim();
+  if(!q) return;
+  await runQuestion(q);
+}
+
+async function runQuestion(question){
+  document.getElementById('question').value = question;
+  const btn = document.getElementById('askBtn');
+  btn.disabled = true;
+  try{
+    setStatus('Reading your question…');
+    const {sql, note} = await nlToSQL(question);
+    setStatus('Querying your ledger…');
+    let rows;
+    try{
+      rows = runSQL(sql, TRANSACTIONS);
+    }catch(execErr){
+      renderReceipt(question, sql, note, null, null, "Couldn't run that query: " + execErr.message);
+      setStatus('');
+      btn.disabled = false;
+      return;
+    }
+    setStatus('Writing the answer…');
+    let insight = '';
+    try{ insight = await resultToInsight(question, sql, rows); }
+    catch(e){ insight = ''; }
+
+    renderReceipt(question, sql, note, rows, insight, null);
+    setStatus('');
+
+    const hist = loadHistory();
+    hist.unshift({question, sql, ts: Date.now()});
+    saveHistory(hist);
+    renderHistory(hist.slice(0,8));
+
+  }catch(err){
+    renderReceipt(question, '', '', null, null, err.message || String(err));
+    setStatus('');
+  }
+  btn.disabled = false;
+}
+
+document.getElementById('question').addEventListener('keydown', e=>{
+  if(e.key === 'Enter') handleAsk();
+});
+
+/* init */
+renderStats();
+renderChips();
+renderHistory(loadHistory());
+</script>
+</body>
+</html>
