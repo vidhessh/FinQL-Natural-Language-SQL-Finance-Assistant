@@ -28,7 +28,7 @@ Ask finance questions in plain English → Generate SQL → Execute instantly �
 
 > **“How much did I spend on dining in June?”**
 
-The application automatically converts the question into SQL using **LLaMA 3.1 via the Groq API**, executes it on a transaction ledger using a **custom JavaScript SQL engine**, and returns a concise financial insight in plain English.
+The application automatically converts the question into SQL , executes it on a transaction ledger using a **custom JavaScript SQL engine**, and returns a concise financial insight in plain English.
 
 Think of it as **ChatGPT for your bank transactions**.
 
